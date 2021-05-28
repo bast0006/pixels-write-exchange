@@ -13,10 +13,11 @@ async def homepage(request):
         "Hello world! And welcome to Bast's Pixel Write Exchange!\n"
         "All requests should have the 'Authorization' header set to a unique identifiable token of up to 30 characters that will be used for your balance. Surrounding spaces will be stripped.\n"
         "GET /tasks to get the top ten highest paying tasks. You may provide ?minimum_pay=<float> to filter.\n"
-        '\tFormat: {"id": task_id, "pay": task_pay, "x": x_coord, "y": y_coord, "color": hex_color}'
+        '\tFormat: {"id": task_id, "pay": task_pay, "x": x_coord, "y": y_coord, "color": hex_color}\n'
         "GET /tasks/<taskid> to claim a task. This claim will last 30 seconds.\n"
         "POST /tasks/<taskid> to submit a task. We will verify whether the pixel has changed, and reward you with your payment.\n"
-        "POST /tasks to create a task. "
+        "\tWe check every 10 seconds (or roughly the maximum view ratelimit) for new pixels globally, and faster with /get_pixel on individual submissions if available. It may take up to that long for your submission to return, so plan accordingly.\n"
+        "POST /tasks to create a task. This endpoint accepts a JSON request in the same format as is returned from a GET from /tasks.\n"
     )
 
 
