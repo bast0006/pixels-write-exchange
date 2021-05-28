@@ -402,7 +402,6 @@ async def canvas_size_loop():
     TICK_RATE = 10  # every 10 seconds
     first = True
     while True:
-        print("Size loop tick")
         if first:
             first = False
         else:
