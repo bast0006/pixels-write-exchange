@@ -5,7 +5,7 @@ description = "A writes exchange for pixels.pythondiscord.com"
 authors = ["Bast0006"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.7"
 starlette = "^0.14.2"
 rich = "^10.2.2"
 pony = "^0.7.14"

@@ -153,6 +153,7 @@ python-versions = ">=3.6,<4.0"
 colorama = ">=0.4.0,<0.5.0"
 commonmark = ">=0.9.0,<0.10.0"
 pygments = ">=2.6.0,<3.0.0"
+typing-extensions = {version = ">=3.7.4,<4.0.0", markers = "python_version < \"3.8\""}
 
 [package.extras]
 jupyter = ["ipywidgets (>=7.5.1,<8.0.0)"]
@@ -187,6 +188,7 @@ python-versions = "*"
 [package.dependencies]
 click = ">=7.0.0,<8.0.0"
 h11 = ">=0.8"
+typing-extensions = {version = "*", markers = "python_version < \"3.8\""}
 
 [package.extras]
 standard = ["websockets (>=8.0.0,<9.0.0)", "watchgod (>=0.6)", "python-dotenv (>=0.13)", "PyYAML (>=5.1)", "httptools (>=0.1.0,<0.2.0)", "uvloop (>=0.14.0,!=0.15.0,!=0.15.1)", "colorama (>=0.4)"]
@@ -202,11 +204,12 @@ python-versions = ">=3.6"
 [package.dependencies]
 idna = ">=2.0"
 multidict = ">=4.0"
+typing-extensions = {version = ">=3.7.4", markers = "python_version < \"3.8\""}
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.9"
-content-hash = "a487e87e3f0009da50a6dd3bff5fd188c356ddb4bece9d4e032f155d80e41bf5"
+python-versions = "^3.7"
+content-hash = "c7b26cf473a6bd17772a1dd0185ca99ed1e3e628af2f8110ecb60b9773527b89"
 
 [metadata.files]
 aiohttp = [
