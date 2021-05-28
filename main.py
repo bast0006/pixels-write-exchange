@@ -27,6 +27,13 @@ async def homepage(request):
     )
 
 
+async def fetch_tasks(request):
+    with orm.db_session():
+        top_ten_payers = orm.select(task for task in Task if not task.completed).order_by(Task.pay)[:RETURNED_TASK_COUNT]
+        top_ten_payers = [{"id": task.id, "pay": task.pay} for task in top_ten_payers]
+    return JSONResponse(top_ten_payers)
+
+
 db = orm.Database()
 
 
@@ -85,6 +92,7 @@ app = Starlette(
     debug=True,
     routes=[
         Route('/', homepage),
+        Route('/tasks', fetch_tasks),
     ],
     on_startup=[start_database],
 )
