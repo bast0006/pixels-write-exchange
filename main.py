@@ -129,8 +129,7 @@ async def create_task(request):
     if random.random() < 0.5:
         response_json["message"] = "Thanks for making the world a better place!"
 
-    async with aiohttp.ClientSession() as session:
-        await session.post(INFO_WEBHOOK, json=make_embed("New task created!", id=new_task.id, x=x, y=y, pay=pay, color=color, user=user.id))
+    await log("New task created!", id=new_task.id, x=x, y=y, pay=pay, color=color, user=user.id)
 
     return JSONResponse(response_json)
 
@@ -163,8 +162,7 @@ async def reserve_task(request):
         reserve_task.EXPIRATION_TASKS[task.reservation_task_id] = expiration_task
         reserve_task.NEXT_TASK_ID += 1
 
-    async with aiohttp.ClientSession() as session:
-        await session.post(INFO_WEBHOOK, json=make_embed("Task reserved!", id=task.id, x=task.x, y=task.y, pay=task.pay, color=task.color, by=user.id))
+    await log("Task reserved!", id=task.id, x=task.x, y=task.y, pay=task.pay, color=task.color, by=user.id)
 
     return JSONResponse({"id": task.id, "x": task.x, "y": task.y, "color": task.color, "pay": task.pay, "expires": task.reservation_expires.isoformat()+"Z"})
 
@@ -204,8 +202,7 @@ async def fix_economy(request):
         new = was + amount
         User[user_id].money = new
 
-    async with aiohttp.ClientSession() as session:
-        await session.post(INFO_WEBHOOK, json=make_embed("User balance updated:", id=user_id, was=was, now=new, added=amount))
+    await log("User balance updated:", id=user_id, was=was, now=new, added=amount)
 
     return JSONResponse({"id": user_id, "now": new, "was": was, "added": amount})
 
@@ -240,8 +237,7 @@ async def delete_task(request):
         task.completed = user
         user.money += task.pay
 
-    async with aiohttp.ClientSession() as session:
-        await session.post(INFO_WEBHOOK, json=make_embed("Task deleted:", id=user.id, task=task.id, created_by=task.creator.id))
+    await log("Task deleted:", id=user.id, task=task.id, created_by=task.creator.id)
 
     return Response(f"Task id '{task_id}' successfully deleted. You have been refunded the '{task.pay}' cats you paid for your placement")
 
@@ -343,8 +339,7 @@ async def expire_task(task_id: int, when: datetime):
         else:
             return  # Successfully completed while we waited
 
-    async with aiohttp.ClientSession() as session:
-        await session.post(INFO_WEBHOOK, json=make_embed("Task reservation expired", id=task.id, x=task.x, y=task.y, pay=task.pay, color=task.color, by=reserver))
+    await log("Task reservation expired", id=task.id, x=task.x, y=task.y, pay=task.pay, color=task.color, by=reserver)
 
 
 
@@ -374,7 +369,7 @@ async def canvas_size_loop():
                     CANVAS_WIDTH = result["width"]
                     CANVAS_HEIGHT = result["height"]
 
-                    await session.post(INFO_WEBHOOK, json=make_embed("Setting canvas size:", width=CANVAS_WIDTH, height=CANVAS_HEIGHT))
+                    await log("Setting canvas size:", width=CANVAS_WIDTH, height=CANVAS_HEIGHT)
 
 
 async def start_size_loop():
@@ -404,6 +399,11 @@ def make_embed(content: str, **kwargs):
     embed['timestamp'] = datetime.utcnow().isoformat()+"Z"
     return {"embeds": [embed]}
 
+
+async def log(content: str, **kwargs):
+    """Logging convenience method"""
+    async with aiohttp.ClientSession() as session:
+        await session.post(INFO_WEBHOOK, json=make_embed(content=content, **kwargs))
 
 app = Starlette(
     debug=True,
