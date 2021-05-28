@@ -109,6 +109,17 @@ async def expire_task(task_id: int, time: datetime):
         else:
             return  # Successfully completed while we waited
 
+
+def create_erroring_task(coroutine):
+    task = asyncio.create_task(coroutine)
+    def ensure_exception(fut: asyncio.Future) -> None:
+        """Ensure an exception in a task is raised without hard awaiting."""
+        if fut.done() and not fut.cancelled():
+            return
+        fut.result()
+
+    task.add_done_callback(ensure_exception)
+
 app = Starlette(
     debug=True,
     routes=[
