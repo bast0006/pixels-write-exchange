@@ -156,7 +156,7 @@ async def reserve_task(request):
     async with aiohttp.ClientSession() as session:
         await session.post(INFO_WEBHOOK, json=make_embed("Task reserved!", id=task.id, x=task.x, y=task.y, pay=task.pay, color=task.color, by=user.id))
 
-    return JSONResponse({"id": task.id, "x": task.x, "y": task.y, "color": task.color, "pay": task.pay, "expires": task.reservation_expires.isoformat()})
+    return JSONResponse({"id": task.id, "x": task.x, "y": task.y, "color": task.color, "pay": task.pay, "expires": task.reservation_expires.isoformat()+"Z"})
 
 reserve_task.NEXT_TASK_ID = 1
 reserve_task.EXPIRATION_TASKS = {}
@@ -296,7 +296,7 @@ def make_embed(content: str, **kwargs):
         embed["fields"] = []
     for key, value in kwargs.items():
         embed['fields'].append({"name": key, "value": str(value), "inline": True})
-    embed['timestamp'] = datetime.utcnow().isoformat()
+    embed['timestamp'] = datetime.utcnow().isoformat()+"Z"
     return {"embeds": [embed]}
 
 
