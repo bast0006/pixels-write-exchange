@@ -130,8 +130,8 @@ db = orm.Database()
 class User(db.Entity):
     id = orm.PrimaryKey(int, auto=True)
     identifier = orm.Required(str, index=True, unique=True)
-    money = orm.Required(float, sql_default=0)
-    total_tasks = orm.Required(int, sql_default=0)
+    money = orm.Required(float, default=0)
+    total_tasks = orm.Required(int, default=0)
     requested_tasks = orm.Set('Task', reverse='reservation')
     created_tasks = orm.Set('Task', reverse='creator')
 
@@ -148,7 +148,7 @@ class User(db.Entity):
 class Task(db.Entity):
     id = orm.PrimaryKey(int, auto=True)
     creator = orm.Required(User)
-    completed = orm.Required(bool, sql_default=False)
+    completed = orm.Required(bool, default=False)
     x = orm.Required(int)
     y = orm.Required(int)
     color = orm.Required(str)
