@@ -116,6 +116,8 @@ async def create_task(request):
             pay=pay,
         )
 
+        user.money -= pay
+
         orm.commit()
         response_json = {"id": new_task.id}
         if random.random() < 0.5:
