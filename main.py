@@ -89,6 +89,9 @@ async def create_task(request):
     if invalid_keys:
         return Response("Invalid keys in data: " + " ,".join(invalid_keys), status_code=400)
 
+    if 'x' not in data:
+        return Response("Invalid offer: You need to tell me the x coordinate for the pixel", status_code=400)
+
     try:
         x = int(data['x'])
         if x < 0:
@@ -97,6 +100,9 @@ async def create_task(request):
             return Response(f"Invalid x value '{x}': must be less than {CANVAS_WIDTH}", status_code=400)
     except ValueError:
         return Response(f"Invalid x value '{data['x']}': must be convertible to an integer", status_code=400)
+
+    if 'y' not in data:
+        return Response("Invalid offer: You need to tell me the y coordinate for the pixel", status_code=400)
 
     try:
         y = int(data['y'])
@@ -107,6 +113,10 @@ async def create_task(request):
     except ValueError:
         return Response(f"Invalid y value '{data['y']}': must be convertible to an integer", status_code=400)
 
+    if 'color' not in data:
+        return Response("Invalid offer: You need to tell me what color the pixel should be set to in 6-char hex format", status_code=400)
+
+
     color = data['color'].strip().lower()
     if len(color) != 6:
         return Response(f"Invalid color '{color}': colors must be 6 characters long", status_code=400)
@@ -114,6 +124,9 @@ async def create_task(request):
     bad_chars = set(color) - set("0123456789abcdef")
     if bad_chars:
         return Response(f"Invalid color: '{color}' must not have the characters '{repr(''.join(bad_chars))}")
+
+    if 'pay' not in data:
+        return Response("Invalid offer: You need to tell me how much they should be paid", status_code=400)
 
     try:
         pay = float(data['pay'])
