@@ -175,8 +175,8 @@ async def start_database():
                 create_erroring_task(expire_task(task.id, task.reservation_expires))
 
 
-async def expire_task(task_id: int, time: datetime):
-    time_to_sleep = (datetime.now() - datetime).total_seconds()
+async def expire_task(task_id: int, when: datetime):
+    time_to_sleep = (datetime.utcnow() - when).total_seconds()
     await asyncio.sleep(time_to_sleep)
     with orm.db_session():
         task = Task[task_id]
