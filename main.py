@@ -265,8 +265,59 @@ async def update_canvas():
 
 CURRENT_CANVAS = None
 CANVAS_UPDATED_AT = datetime.now()
+pixel_resets_by = datetime.now()
+
 async def submit_task(request):
-    pass
+    global pixel_resets_by
+    authorization = request.headers.get('Authorization', None)
+    if not authorization or not authorization.strip():
+        return Response("Authorization is required for this endpoint", status_code=401)
+    elif len(authorization.strip()) > 30:
+        return Response("Auth tokens must be 30 characters or less in size", status_code=401)
+
+    task_id = request.path_params['task_id']
+
+    with orm.db_session():
+        user = User.get_from_authorization(authorization)
+        task = Task.get(id=task_id)
+
+        if task.reservation and task.reservation != user:
+            return Response("You are not the user who reserved this task", status_code=403)
+
+    if pixel_resets_by - datetime.now() < timedelta(seconds=10):
+        print("Waiting until get_pixel cooldown resets")
+        await asyncio.sleep((pixel_resets_by - datetime.now()).total_seconds())
+    async with aiohttp.ClientSession() as session:
+        async with session.get(API_BASE + "/get_pixel", params={"x": task.x, "y": task.y}, headers=HEADERS) as response:
+            data = await response.json()
+            requests_left = response.headers.get("requests-remaining")
+            requests_reset = response.headers.get("requests-reset")
+            cooldown_reset = response.headers.get("cooldown-reset")
+
+    if cooldown_reset:
+        # fuck
+        pixel_resets_by = datetime.now() + timedelta(seconds=int(cooldown_reset))
+        await log("Hit the fucking /get_pixel ratelimit", remaining=cooldown_reset, requests_left=requests_left, reset=requests_reset)
+        await asyncio.sleep(int(cooldown_reset))
+        # Wait and try again for our user
+        return await submit_task(request)
+
+    if requests_left == "0":
+        pixel_resets_by = datetime.now() + timedelta(seconds=int(requests_reset))
+
+    color = data["rgb"]
+    if color == task.color:
+        # Success!
+        with orm.db_session():
+            task = Task.get(id=task_id)
+            task.completed = user
+        await log("Pixel completed!", x=task.x, y=task.y, color=task.color, user=user.id)
+        return Response(f"Congratulations and thank you for your efforts! You have been paid {task.pay} cats for this pixel!")
+
+    return Response(f"The pixel at {task.x}, {task.y} appears to currently be {color}, not {task.color}. /get_pixel may take up to a second to update, so feel free to try again. Otherwise someone may have sniped your pixel ;-;. Sorry. Feel free to try again later.", status_code=404)
+
+
+
 
 
 db = orm.Database()
@@ -412,6 +463,7 @@ app = Starlette(
         Route('/tasks', fetch_tasks, methods=['GET']),
         Route('/tasks', create_task, methods=['POST']),
         Route('/tasks/{task_id:int}', reserve_task, methods=['GET']),
+        Route('/tasks/{task_id:int}', submit_task, methods=['POST']),
         Route('/balance', balance, methods=['GET']),
         Route('/balance/{user_id:int}', fix_economy, methods=['POST']),
         Route('/tasks/{task_id:int}', delete_task, methods=['DELETE']),
