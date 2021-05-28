@@ -120,8 +120,8 @@ async def canvas_size_loop():
             first = False
         async with aiohttp.ClientSession() as session:
             async with session.get(API_BASE + "/get_size", headers=HEADERS) as response:
-                if result.status_code != 200:
-                    await session.post(ERROR_WEBHOOK, json=make_embed("Error hit while getting canvas size:", status_code=result.status_code, error=await result.read()))
+                if response.status != 200:
+                    await session.post(ERROR_WEBHOOK, json=make_embed("Error hit while getting canvas size:", status_code=response.status, error=await result.read()))
                     continue
                 try:
                     result = await response.json()
