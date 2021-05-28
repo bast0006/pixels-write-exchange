@@ -54,6 +54,9 @@ async def homepage(request):
         "GET /balance to view your balance\n"
         '\tReturns: {"id": your_id, "balance": your_balance}\n'
         "DELETE /tasks/<task_id> to delete a task you've submitted. This will return an error if it's already been reserved.\n"
+        "\n\nGetting started:\nAdd an 'Authorization: your-secret-code-here' header to a requests.get() and hit /balance and /tasks."
+        "\nThen GET /tasks/<the-task-id-you-want> to reserve it.\n"
+        "Set the pixel, then POST /tasks/<the-task-id-you-want>. We will check it and award points! There's no json content neccessary or anything!\n"
     )
     # Delete endpoint works for magic auth freely, and returns the money to the magic account
     # "POST /balance/<user_id>" to add money to a user with the magic api token, useful for fixing the economy. Requires the integer amount in the request body
