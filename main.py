@@ -23,7 +23,7 @@ API_BASE = "https://pixels.pythondiscord.com"
 CONFIG = dotenv_values(".env")
 
 API_KEY = CONFIG["API_KEY"]
-ERROR_WEBHOOK = CONFIG["ERROR_WEBHOOK"]
+INFO_WEBHOOK = CONFIG["INFO_WEBHOOK"]
 MAGIC_AUTHORIZATION = CONFIG["MAGIC_AUTHORIZATION"]
 HEADERS = {
     "Authorization": "Bearer " + API_KEY,
@@ -199,19 +199,19 @@ async def canvas_size_loop():
         async with aiohttp.ClientSession() as session:
             async with session.get(API_BASE + "/get_size", headers=HEADERS) as response:
                 if response.status != 200:
-                    await session.post(ERROR_WEBHOOK, json=make_embed("Error hit while getting canvas size:", status_code=response.status, error=await result.read()))
+                    await session.post(INFO_WEBHOOK, json=make_embed("Error hit while getting canvas size:", status_code=response.status, error=await result.read()))
                     continue
                 try:
                     result = await response.json()
                 except Exception as e:
-                    await session.post(ERROR_WEBHOOK, json=make_embed("Error while parsing /get_size json", error=str(e)))
+                    await session.post(INFO_WEBHOOK, json=make_embed("Error while parsing /get_size json", error=str(e)))
                     continue
 
                 if (CANVAS_WIDTH, CANVAS_HEIGHT) != (result["width"], result["height"]):
                     CANVAS_WIDTH = result["width"]
                     CANVAS_HEIGHT = result["height"]
 
-                    await session.post(ERROR_WEBHOOK, json=make_embed("Setting canvas size:", width=CANVAS_WIDTH, height=CANVAS_HEIGHT))
+                    await session.post(INFO_WEBHOOK, json=make_embed("Setting canvas size:", width=CANVAS_WIDTH, height=CANVAS_HEIGHT))
 
 
 async def start_size_loop():
@@ -220,6 +220,7 @@ async def start_size_loop():
 
 def create_erroring_task(coroutine):
     task = asyncio.create_task(coroutine)
+
     def ensure_exception(fut: asyncio.Future) -> None:
         """Ensure an exception in a task is raised without hard awaiting."""
         if fut.done() and not fut.cancelled():
@@ -238,6 +239,7 @@ def make_embed(content: str, **kwargs):
     for key, value in kwargs.items():
         embed['fields'].append({"name": key, "value": str(value), "inline": False})
     return {"embeds": [embed]}
+
 
 app = Starlette(
     debug=True,
