@@ -240,7 +240,7 @@ def make_embed(content: str, **kwargs):
     if kwargs:
         embed["fields"] = []
     for key, value in kwargs.items():
-        embed['fields'].append({"name": key, "value": str(value), "inline": False})
+        embed['fields'].append({"name": key, "value": str(value), "inline": True})
     return {"embeds": [embed]}
 
 
