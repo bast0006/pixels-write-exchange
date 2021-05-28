@@ -117,8 +117,11 @@ async def create_task(request):
         response_json = {"id": new_task.id}
         if random.random() < 0.5:
             response_json["message"] = "Thanks for making the world a better place!"
-        return JSONResponse(response_json)
 
+    async with aiohttp.ClientSession() as session:
+        await session.post(INFO_WEBHOOK, json=make_embed("New task created!", id=new_task.id, x=x, y=y, pay=pay, color=color, user=user.id))
+
+    return JSONResponse(response_json)
 
 
 db = orm.Database()
