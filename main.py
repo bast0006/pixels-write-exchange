@@ -246,6 +246,6 @@ app = Starlette(
         Route('/tasks', fetch_tasks, methods=['GET']),
         Route('/tasks', create_task, methods=['POST']),
     ],
-    on_startup=[start_database],
+    on_startup=[start_database, start_size_loop],
 )
 orm.set_sql_debug(True)
