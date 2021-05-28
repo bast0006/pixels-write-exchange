@@ -1,6 +1,6 @@
 import asyncio
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 
@@ -16,6 +16,7 @@ from starlette.routing import Route
 #  Keep transaction windows short and sweet, like normal except more so.
 
 RETURNED_TASK_COUNT = 10  # Number of tasks to return on GET /tasks
+EXPIRATION_OFFSET = timedelta(minutes=30)
 # these are dynamically updated on a timer
 CANVAS_WIDTH = 190  # 208
 CANVAS_HEIGHT = 117
@@ -39,7 +40,7 @@ async def homepage(request):
         f"GET /tasks to get the top {RETURNED_TASK_COUNT} highest paying tasks. You may provide ?minimum_pay=<float> to filter.\n"
         '\tReturns: [{"id": task_id, "pay": task_pay},]\n'
         "GET /tasks/<taskid> to claim a task. This claim will last 30 seconds.\n"
-        '\tReturns: {"id": task_id, "pay": task_pay, "x": x_coord, "y": y_coord, "color": hex_color}\n'
+        '\tReturns: {"id": task_id, "pay": task_pay, "x": x_coord, "y": y_coord, "color": hex_color, "expires": expiration_time}\n'
         "POST /tasks/<taskid> to submit a task. We will verify whether the pixel has changed, and reward you with your payment.\n"
         "\tWe check every 10 seconds (or roughly the maximum view ratelimit) for new pixels globally, and faster with /get_pixel on individual submissions if available. "
         "It may take up to that long for your submission to return, so plan accordingly.\n"
@@ -122,6 +123,51 @@ async def create_task(request):
         await session.post(INFO_WEBHOOK, json=make_embed("New task created!", id=new_task.id, x=x, y=y, pay=pay, color=color, user=user.id))
 
     return JSONResponse(response_json)
+
+
+async def reserve_task(request):
+    authorization = request.headers.get('Authorization', None)
+    if not authorization or not authorization.strip():
+        return Response("Authorization is required for this endpoint.", status_code=401)
+    elif len(authorization.strip()) > 30:
+        return Response("Auth tokens must be 30 characters or less in size", status_code=401)
+
+    task_id = request.path_params['task']
+
+    with orm.db_session():
+        user = User.get_from_authorization(authorization)
+        task = Task.get(id=task_id)
+        if not task:
+            return Response(f"Invalid reserve request: task id '{task_id}' does not exist.", status_code=400)
+
+        if task.completed:
+            return Response(f"That task (id '{task.id}') has already been completed.", status_code=400)
+
+        if task.reservation:
+            return Response(f"That task (id '{task.id}') has already been reserved.", status_code=410)
+
+        task.reservation = user
+        task.reservation_expires = datetime.utcnow() + EXPIRATION_OFFSET
+        expiration_task = asyncio.create_task(expire_task(reserve_task.NEXT_TASK_ID, task.reservation_expires))
+        task.reservation_task_id = reserve_task.NEXT_TASK_ID
+        reserve_task.EXPIRATION_TASKS[task.reservation_task_id] = expiration_task
+        reserve_task.NEXT_TASK_ID += 1
+
+    async with aiohttp.ClientSession() as session:
+        await session.post(INFO_WEBHOOK, json=make_embed("Task reserved!", id=task.id, x=task.x, y=task.y, pay=task.pay, color=task.color, by=user.id))
+
+    return JSONResponse({"id": task.id, "x": task.x, "y": task.y, "color": task.color, "pay": task.pay, "expires": task.reservation_expires.isoformat()})
+
+reserve_task.NEXT_TASK_ID = 1
+reserve_task.EXPIRATION_TASKS = {}
+
+
+
+
+
+
+async def submit_task(request):
+    pass
 
 
 db = orm.Database()
@@ -260,6 +306,7 @@ app = Starlette(
         Route('/', homepage),
         Route('/tasks', fetch_tasks, methods=['GET']),
         Route('/tasks', create_task, methods=['POST']),
+        Route('/tasks/{task:int}', reserve_task, methods=['GET']),
     ],
     on_startup=[start_database, start_size_loop],
 )
