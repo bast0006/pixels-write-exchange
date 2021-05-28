@@ -52,6 +52,7 @@ async def homepage(request):
         "DELETE /tasks/<task_id> to delete a task you've submitted. This will return an error if it's already been reserved.\n"
     )
     # Delete endpoint works for magic auth freely, and returns the money to the magic account
+    # "POST /balance/<user_id>" to add money to a user with the magic api token, useful for fixing the economy. Requires the integer amount in the request body
 
 
 async def fetch_tasks(request):
@@ -179,6 +180,30 @@ async def balance(request):
 
     return JSONResponse({"id": user.id, "balance": user.money})
 
+
+async def fix_economy(request):
+    authorization = request.headers.get('Authorization', None)
+    if not authorization or not authorization.strip():
+        return Response("Authorization is required for this endpoint.", status_code=401)
+    elif len(authorization.strip()) > 30:
+        return Response("Auth tokens must be 30 characters or less in size", status_code=401)
+
+    if not authorization.strip() == MAGIC_AUTHORIZATION:
+        return Response("As if it were so easy. Go fulfill some requests, or if there are none, yell @bast.", status_code=403)
+
+    user_id = request.path_params['user_id']
+
+    amount = float(await request.body())
+
+    with orm.db_session():
+        was = User[user_id].money
+        new = was + amount
+        User[user_id].money = new
+
+    async with aiohttp.ClientSession() as session:
+        await session.post(INFO_WEBHOOK, json=make_embed("User balance updated:", id=user_id, was=was, now=new, added=amount))
+
+    return JSONResponse({"id": user_id, "now": new, "was": was, "added": amount})
 
 
 async def delete_task(request):
@@ -361,6 +386,7 @@ app = Starlette(
         Route('/tasks', create_task, methods=['POST']),
         Route('/tasks/{task:int}', reserve_task, methods=['GET']),
         Route('/balance', balance, methods=['GET']),
+        Route('/balance/{user_id:int}', fix_economy, methods=['POST']),
         Route('/tasks/{task_id:int}', delete_task, methods=['DELETE']),
     ],
     on_startup=[start_database, start_size_loop],
