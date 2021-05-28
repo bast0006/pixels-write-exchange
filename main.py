@@ -141,8 +141,11 @@ async def canvas_size_loop():
                     await session.post(ERROR_WEBHOOK, json=make_embed("Error while parsing /get_size json", error=str(e)))
                     continue
 
-                CANVAS_WIDTH = result["width"]
-                CANVAS_HEIGHT = result["height"]
+                if (CANVAS_WIDTH, CANVAS_HEIGHT) != (result["width"], result["height"]):
+                    CANVAS_WIDTH = result["width"]
+                    CANVAS_HEIGHT = result["height"]
+
+                    await session.post(ERROR_WEBHOOK, json=make_embed("Setting canvas size:", width=CANVAS_WIDTH, height=CANVAS_HEIGHT))
 
 
 async def start_size_loop():
