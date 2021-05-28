@@ -241,6 +241,7 @@ def make_embed(content: str, **kwargs):
         embed["fields"] = []
     for key, value in kwargs.items():
         embed['fields'].append({"name": key, "value": str(value), "inline": True})
+    embed['timestamp'] = datetime.utcnow().isoformat()
     return {"embeds": [embed]}
 
 
