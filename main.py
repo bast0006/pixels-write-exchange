@@ -19,7 +19,7 @@ from starlette.routing import Route
 #  Keep transaction windows short and sweet, like normal except more so.
 
 RETURNED_TASK_COUNT = 10  # Number of tasks to return on GET /tasks
-EXPIRATION_OFFSET = timedelta(minutes=30)
+EXPIRATION_OFFSET = timedelta(minutes=1)
 MINIMUM_WAGE = 0.1
 # these are dynamically updated on a timer
 CANVAS_WIDTH = 208
@@ -44,7 +44,7 @@ async def homepage(request):
         " Surrounding spaces will be stripped.\n"
         f"\nGET /tasks to get the top {RETURNED_TASK_COUNT} highest paying tasks. You may provide ?minimum_pay=<float> to filter.\n"
         '\tReturns: [{"id": task_id, "pay": task_pay},]\n'
-        "\nGET /tasks/<taskid> to claim a task. This claim will last 30 seconds.\n"
+        "\nGET /tasks/<taskid> to claim a task. This claim will last 1 minute.\n"
         '\tReturns: {"id": task_id, "pay": task_pay, "x": x_coord, "y": y_coord, "color": hex_color, "expires": expiration_time}\n'
         "\nPOST /tasks/<taskid> to submit a task. We will verify whether the pixel has changed, and reward you with your payment.\n"
         "\tWe check every 10 seconds (or roughly the maximum view ratelimit) for new pixels globally, and faster with /get_pixel on individual submissions if available. "
