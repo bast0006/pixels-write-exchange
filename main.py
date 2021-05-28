@@ -110,6 +110,33 @@ async def expire_task(task_id: int, time: datetime):
             return  # Successfully completed while we waited
 
 
+async def canvas_size_loop():
+    global CANVAS_WIDTH, CANVAS_HEIGHT
+    TICK_RATE = 10  # every 10 seconds
+    first = True
+    while True:
+        if not first:
+            await asyncio.sleep(TICK_RATE)
+            first = False
+        async with aiohttp.ClientSession() as session:
+            async with session.get(API_BASE + "/get_size", headers=HEADERS) as response:
+                if result.status_code != 200:
+                    await session.post(ERROR_WEBHOOK, json=make_embed("Error hit while getting canvas size:", status_code=result.status_code, error=await result.read()))
+                    continue
+                try:
+                    result = await response.json()
+                except Exception as e:
+                    await session.post(ERROR_WEBHOOK, json=make_embed("Error while parsing /get_size json", error=str(e)))
+                    continue
+
+                CANVAS_WIDTH = result["width"]
+                CANVAS_HEIGHT = result["height"]
+
+
+async def start_size_loop():
+    create_erroring_task(canvas_size_loop())
+
+
 def create_erroring_task(coroutine):
     task = asyncio.create_task(coroutine)
     def ensure_exception(fut: asyncio.Future) -> None:
