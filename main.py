@@ -119,6 +119,9 @@ async def create_task(request):
     except ValueError:
         return Response("Invalid payment offer: must be convertible to a number", status_code=400)
 
+    if pay <= 0:
+        return Response(f"Invalid pay '{pay}': you can't offer negative pay.", status_code=400)
+
     with orm.db_session():
         user = User.get_from_authorization(authorization)
         if user.money < pay:
