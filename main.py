@@ -17,7 +17,7 @@ from starlette.routing import Route
 
 RETURNED_TASK_COUNT = 10  # Number of tasks to return on GET /tasks
 # these are dynamically updated on a timer
-CANVAS_WIDTH = 208
+CANVAS_WIDTH = 190  # 208
 CANVAS_HEIGHT = 117
 API_BASE = "https://pixels.pythondiscord.com"
 CONFIG = dotenv_values(".env")
