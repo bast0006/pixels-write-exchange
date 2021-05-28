@@ -5,11 +5,14 @@ from typing import Optional
 
 
 import aiohttp
+import numpy as np
 from dotenv import dotenv_values
+from PIL import Image
 from pony import orm
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
+
 
 # NOTES ON WORKING WITH PONY AND ASYNCIO:
 #  DO NOT AWAIT WITHIN orm.db_session() or YOU WILL CAUSE DEADLOCK OR CORRUPTION
@@ -20,6 +23,7 @@ EXPIRATION_OFFSET = timedelta(minutes=30)
 # these are dynamically updated on a timer
 CANVAS_WIDTH = 190  # 208
 CANVAS_HEIGHT = 117
+CANVAS_REFRESH_RATE = 10  # seconds
 API_BASE = "https://pixels.pythondiscord.com"
 CONFIG = dotenv_values(".env")
 
@@ -242,6 +246,29 @@ async def delete_task(request):
     return Response(f"Task id '{task_id}' successfully deleted. You have been refunded the '{task.pay}' cats you paid for your placement")
 
 
+
+async def update_canvas():
+    global CURRENT_CANVAS, CANVAS_UPDATED_AT
+    if (CANVAS_UPDATED_AT - datetime.now()).total_seconds() < CANVAS_REFRESH_RATE:
+        CANVAS_UPDATED_AT = datetime.now()
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(API_BASE + "/get_pixels", headers=HEADERS) as response:
+                response.raise_for_status()
+                current_pixels_raw = await response.read()
+        print("Got %s pixel fragments", len(current_pixels_raw))
+    except Exception:
+        print(response)
+        await log("Failed to update canvas view:", response=str(response), code=response.status)
+        return None
+    current_pixels = np.frombuffer(current_pixels_raw, dtype=np.uint8)
+    pixels = np.reshape(current_pixels, (CANVAS_HEIGHT, CANVAS_WIDTH, 3))
+    CURRENT_CANVAS = pixels
+
+
+CURRENT_CANVAS = None
+CANVAS_UPDATED_AT = datetime.now()
 async def submit_task(request):
     pass
 
