@@ -60,7 +60,7 @@ db = orm.Database()
 
 class User(db.Entity):
     id = orm.PrimaryKey(int, auto=True)
-    identifier = orm.Required(str, index=True)
+    identifier = orm.Required(str, index=True, unique=True)
     money = orm.Required(float, sql_default=0)
     total_tasks = orm.Required(int, sql_default=0)
     requested_tasks = orm.Set('Task', reverse='reservation')
