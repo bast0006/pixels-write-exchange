@@ -63,8 +63,14 @@ async def homepage(request):
 
 
 async def fetch_tasks(request):
+    minimum_pay = request.query_params.get('minimum_pay')
+    if minimum_pay:
+        minimum_pay = float(minimum_pay)
+    else:
+        minimum_pay = 0
+
     with orm.db_session():
-        top_ten_payers = orm.select(task for task in Task if not task.completed).order_by(orm.desc(Task.pay))[:RETURNED_TASK_COUNT]
+        top_ten_payers = orm.select(task for task in Task if not task.completed and task.pay >= minimum_pay).order_by(orm.desc(Task.pay))[:RETURNED_TASK_COUNT]
         top_ten_payers = [{"id": task.id, "pay": task.pay} for task in top_ten_payers]
     return JSONResponse(top_ten_payers)
 
