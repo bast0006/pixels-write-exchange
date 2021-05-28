@@ -21,7 +21,7 @@ from starlette.routing import Route
 RETURNED_TASK_COUNT = 10  # Number of tasks to return on GET /tasks
 EXPIRATION_OFFSET = timedelta(minutes=30)
 # these are dynamically updated on a timer
-CANVAS_WIDTH = 190  # 208
+CANVAS_WIDTH = 208
 CANVAS_HEIGHT = 117
 CANVAS_REFRESH_RATE = 10  # seconds
 API_BASE = "https://pixels.pythondiscord.com"
@@ -456,8 +456,12 @@ def make_embed(content: str, **kwargs):
 
 async def log(content: str, **kwargs):
     """Logging convenience method"""
+    print("Logging:", content, kwargs)
     async with aiohttp.ClientSession() as session:
         await session.post(INFO_WEBHOOK, json=make_embed(content=content, **kwargs))
+
+async def log_startup():
+    await log("Server is coming up!")
 
 app = Starlette(
     debug=True,
@@ -471,6 +475,6 @@ app = Starlette(
         Route('/balance/{user_id:int}', fix_economy, methods=['POST']),
         Route('/tasks/{task_id:int}', delete_task, methods=['DELETE']),
     ],
-    on_startup=[start_database, start_size_loop],
+    on_startup=[start_database, start_size_loop, log_startup],
 )
 orm.set_sql_debug(True)
