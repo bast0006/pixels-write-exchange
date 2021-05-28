@@ -141,7 +141,7 @@ async def reserve_task(request):
     elif len(authorization.strip()) > 30:
         return Response("Auth tokens must be 30 characters or less in size", status_code=401)
 
-    task_id = request.path_params['task']
+    task_id = request.path_params['task_id']
 
     with orm.db_session():
         user = User.get_from_authorization(authorization)
@@ -411,7 +411,7 @@ app = Starlette(
         Route('/', homepage),
         Route('/tasks', fetch_tasks, methods=['GET']),
         Route('/tasks', create_task, methods=['POST']),
-        Route('/tasks/{task:int}', reserve_task, methods=['GET']),
+        Route('/tasks/{task_id:int}', reserve_task, methods=['GET']),
         Route('/balance', balance, methods=['GET']),
         Route('/balance/{user_id:int}', fix_economy, methods=['POST']),
         Route('/tasks/{task_id:int}', delete_task, methods=['DELETE']),
