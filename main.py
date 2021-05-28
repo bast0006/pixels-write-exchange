@@ -49,7 +49,9 @@ async def homepage(request):
         '\tReturns: {"id": new_task_id}\n'
         "GET /balance to view your balance\n"
         '\tReturns: {"id": your_id, "balance": your_balance}\n'
+        "DELETE /tasks/<task_id> to delete a task you've submitted. This will return an error if it's already been reserved.\n"
     )
+    # Delete endpoint works for magic auth freely, and returns the money to the magic account
 
 
 async def fetch_tasks(request):
@@ -179,6 +181,40 @@ async def balance(request):
 
 
 
+async def delete_task(request):
+    authorization = request.headers.get('Authorization', None)
+    if not authorization or not authorization.strip():
+        return Response("Authorization is required for this endpoint", status_code=401)
+    elif len(authorization.strip()) > 30:
+        return Response("Auth tokens must be 30 characters or less in size", status_code=401)
+
+    task_id = request.path_params['task_id']
+
+    with orm.db_session():
+        user = User.get_from_authorization(authorization)
+        task = Task.get(id=task_id)
+        magic = authorization.strip() == MAGIC_AUTHORIZATION
+
+        if not task:
+            return Response(f"Task id '{task_id}' does not exist", status_code=400)
+
+        if task.completed:
+            return Response(f"Task id '{task_id}' has already been completed", status_code=410)
+
+        if task.reservation and not magic:
+            return Response(f"Task id '{task_id}' is reserved, so you cannot delete it", status_code=403)
+
+        if task.creator != user:
+            return Response(f"Task id '{task_id}' was not created by you", status_code=403)
+
+        task.deleted = True
+        task.completed = user
+        user.money += task.pay
+
+    async with aiohttp.ClientSession() as session:
+        await session.post(INFO_WEBHOOK, json=make_embed("Task deleted:", id=user.id, task=task.id, created_by=task.creator.id))
+
+    return Response(f"Task id '{task_id}' successfully deleted. You have been refunded the '{task.pay}' cats you paid for your placement")
 
 
 async def submit_task(request):
@@ -195,6 +231,7 @@ class User(db.Entity):
     total_tasks = orm.Required(int, default=0)
     requested_tasks = orm.Set('Task', reverse='reservation')
     created_tasks = orm.Set('Task', reverse='creator')
+    completed_tasks = orm.Set('Task', reverse='completed')
 
     @classmethod
     def get_from_authorization(cls, authorization: str) -> 'User':
@@ -209,7 +246,8 @@ class User(db.Entity):
 class Task(db.Entity):
     id = orm.PrimaryKey(int, auto=True)
     creator = orm.Required(User)
-    completed = orm.Required(bool, default=False)
+    completed = orm.Optional(User)
+    deleted = orm.Required(bool, default=False)
     x = orm.Required(int)
     y = orm.Required(int)
     color = orm.Required(str)
@@ -323,6 +361,7 @@ app = Starlette(
         Route('/tasks', create_task, methods=['POST']),
         Route('/tasks/{task:int}', reserve_task, methods=['GET']),
         Route('/balance', balance, methods=['GET']),
+        Route('/tasks/{task_id:int}', delete_task, methods=['DELETE']),
     ],
     on_startup=[start_database, start_size_loop],
 )
