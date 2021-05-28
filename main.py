@@ -20,6 +20,7 @@ from starlette.routing import Route
 
 RETURNED_TASK_COUNT = 10  # Number of tasks to return on GET /tasks
 EXPIRATION_OFFSET = timedelta(minutes=30)
+MINIMUM_WAGE = 0.1
 # these are dynamically updated on a timer
 CANVAS_WIDTH = 208
 CANVAS_HEIGHT = 117
@@ -67,7 +68,7 @@ async def fetch_tasks(request):
     if minimum_pay:
         minimum_pay = float(minimum_pay)
     else:
-        minimum_pay = 0
+        minimum_pay = MINIMUM_WAGE
 
     with orm.db_session():
         top_ten_payers = orm.select(task for task in Task if not task.completed and task.pay >= minimum_pay).order_by(orm.desc(Task.pay))[:RETURNED_TASK_COUNT]
@@ -119,8 +120,8 @@ async def create_task(request):
     except ValueError:
         return Response("Invalid payment offer: must be convertible to a number", status_code=400)
 
-    if pay <= 0:
-        return Response(f"Invalid pay '{pay}': you can't offer negative pay.", status_code=400)
+    if pay < MINIMUM_WAGE:
+        return Response(f"Invalid pay '{pay}': you can't offer pay below the minimum wage of {MINIMUM_WAGE} cats per pixel.", status_code=400)
 
     with orm.db_session():
         user = User.get_from_authorization(authorization)
