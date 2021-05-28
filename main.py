@@ -118,10 +118,9 @@ async def create_task(request):
 
         user.money -= pay
 
-        orm.commit()
-        response_json = {"id": new_task.id}
-        if random.random() < 0.5:
-            response_json["message"] = "Thanks for making the world a better place!"
+    response_json = {"id": new_task.id}
+    if random.random() < 0.5:
+        response_json["message"] = "Thanks for making the world a better place!"
 
     async with aiohttp.ClientSession() as session:
         await session.post(INFO_WEBHOOK, json=make_embed("New task created!", id=new_task.id, x=x, y=y, pay=pay, color=color, user=user.id))
@@ -176,7 +175,7 @@ async def balance(request):
     with orm.db_session():
         user = User.get_from_authorization(authorization)
 
-        return JSONResponse({"id": user.id, "balance": user.money})
+    return JSONResponse({"id": user.id, "balance": user.money})
 
 
 
