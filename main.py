@@ -39,21 +39,21 @@ HEADERS = {
 async def homepage(request):
     return Response(
         "Hello world! And welcome to Bast's Pixel Write Exchange!\n"
-        "All requests should have the 'Authorization' header set to a unique identifiable token of up to 30 characters that will be used for your balance."
+        "\nAll requests should have the 'Authorization' header set to a unique identifiable token of up to 30 characters that will be used for your balance."
         " Surrounding spaces will be stripped.\n"
-        f"GET /tasks to get the top {RETURNED_TASK_COUNT} highest paying tasks. You may provide ?minimum_pay=<float> to filter.\n"
+        f"\nGET /tasks to get the top {RETURNED_TASK_COUNT} highest paying tasks. You may provide ?minimum_pay=<float> to filter.\n"
         '\tReturns: [{"id": task_id, "pay": task_pay},]\n'
-        "GET /tasks/<taskid> to claim a task. This claim will last 30 seconds.\n"
+        "\nGET /tasks/<taskid> to claim a task. This claim will last 30 seconds.\n"
         '\tReturns: {"id": task_id, "pay": task_pay, "x": x_coord, "y": y_coord, "color": hex_color, "expires": expiration_time}\n'
-        "POST /tasks/<taskid> to submit a task. We will verify whether the pixel has changed, and reward you with your payment.\n"
+        "\nPOST /tasks/<taskid> to submit a task. We will verify whether the pixel has changed, and reward you with your payment.\n"
         "\tWe check every 10 seconds (or roughly the maximum view ratelimit) for new pixels globally, and faster with /get_pixel on individual submissions if available. "
         "It may take up to that long for your submission to return, so plan accordingly.\n"
-        "POST /tasks to create a task.\n"
+        "\nPOST /tasks to create a task.\n"
         '\tFormat: {"pay": task_pay, "x": x_coord, "y": y_coord, "color": hex_color}\n'
         '\tReturns: {"id": new_task_id}\n'
-        "GET /balance to view your balance\n"
+        "\nGET /balance to view your balance\n"
         '\tReturns: {"id": your_id, "balance": your_balance}\n'
-        "DELETE /tasks/<task_id> to delete a task you've submitted. This will return an error if it's already been reserved.\n"
+        "\nDELETE /tasks/<task_id> to delete a task you've submitted. This will return an error if it's already been reserved.\n"
         "\n\nGetting started:\nAdd an 'Authorization: your-secret-code-here (make it yourself! treat it like a password)' header to a requests.get() and hit /balance and /tasks."
         "\nThen GET /tasks/<the-task-id-you-want> to reserve it.\n"
         "Set the pixel, then POST /tasks/<the-task-id-you-want>. We will check it and award points! There's no json content neccessary or anything!\n"
