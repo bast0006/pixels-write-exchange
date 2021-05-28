@@ -1,17 +1,34 @@
 import asyncio
 from datetime import datetime
+from typing import Optional
 
+
+import aiohttp
+from dotenv import dotenv_values
+from pony import orm
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
-
-from pony import orm
 
 # NOTES ON WORKING WITH PONY AND ASYNCIO:
 #  DO NOT AWAIT WITHIN orm.db_session() or YOU WILL CAUSE DEADLOCK OR CORRUPTION
 #  Keep transaction windows short and sweet, like normal except more so.
 
 RETURNED_TASK_COUNT = 10  # Number of tasks to return on GET /tasks
+# these are dynamically updated on a timer
+CANVAS_WIDTH = 208
+CANVAS_HEIGHT = 117
+API_BASE = "https://pixels.pythondiscord.com"
+CONFIG = dotenv_values(".env")
+
+API_KEY = CONFIG["API_KEY"]
+ERROR_WEBHOOK = CONFIG["ERROR_WEBHOOK"]
+MAGIC_AUTHORIZATION = CONFIG["MAGIC_AUTHORIZATION"]
+HEADERS = {
+    "Authorization": "Bearer " + API_KEY,
+    "User-Agent": "bast-write-market/0.1",
+}
+
 
 async def homepage(request):
     return Response(
