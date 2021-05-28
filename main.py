@@ -115,9 +115,12 @@ async def canvas_size_loop():
     TICK_RATE = 10  # every 10 seconds
     first = True
     while True:
-        if not first:
-            await asyncio.sleep(TICK_RATE)
+        print("Size loop tick")
+        if first:
             first = False
+        else:
+            await asyncio.sleep(TICK_RATE)
+        await asyncio.sleep(1)
         async with aiohttp.ClientSession() as session:
             async with session.get(API_BASE + "/get_size", headers=HEADERS) as response:
                 if response.status != 200:
