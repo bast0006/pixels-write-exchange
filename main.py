@@ -181,9 +181,14 @@ async def expire_task(task_id: int, when: datetime):
     with orm.db_session():
         task = Task[task_id]
         if not task.completed:
+            reserver = task.reservation
             task.reservation = None
-            task.reservation_task_id = None
             task.reservation_expires = None
+            if task.reservation_task_id in reserve_task.EXPIRATION_TASKS:
+                task_task = reserve_task.EXPIRATION_TASKS[task.reservation_task_id]
+                del reserve_task.EXPIRATION_TASKS[task.reservation_task_id]
+                task_task.cancel()
+            task.reservation_task_id = None
         else:
             return  # Successfully completed while we waited
 
