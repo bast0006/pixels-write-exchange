@@ -1,4 +1,5 @@
 import asyncio
+import random
 from datetime import datetime
 from typing import Optional
 
@@ -53,6 +54,71 @@ async def fetch_tasks(request):
         top_ten_payers = orm.select(task for task in Task if not task.completed).order_by(Task.pay)[:RETURNED_TASK_COUNT]
         top_ten_payers = [{"id": task.id, "pay": task.pay} for task in top_ten_payers]
     return JSONResponse(top_ten_payers)
+
+
+async def create_task(request):
+    authorization = request.headers.get('Authorization', None)
+    if not authorization or not authorization.strip():
+        return Response("Authorization is required for this endpoint.", status_code=401)
+    elif len(authorization.strip()) > 30:
+        return Response("Auth tokens must be 30 characters or less in size", status_code=401)
+
+    data = await request.json()
+
+    invalid_keys = set(data) - {'id', 'pay', 'x', 'y', 'color'}
+    if invalid_keys:
+        return Response("Invalid keys in data: " + " ,".join(invalid_keys), status_code=400)
+
+    try:
+        x = int(data['x'])
+        if x < 0:
+            return Response(f"Invalid x value '{x}': must be greater than or equal to zero", status_code=400)
+        if x >= CANVAS_WIDTH:
+            return Response(f"Invalid x value '{x}': must be less than {CANVAS_WIDTH}", status_code=400)
+    except ValueError:
+        return Response(f"Invalid x value '{data['x']}': must be convertible to an integer", status_code=400)
+
+    try:
+        y = int(data['y'])
+        if y < 0:
+            return Response(f"Invalid y value '{y}': must be greater than or equal to zero", status_code=400)
+        if y >= CANVAS_HEIGHT:
+            return Response(f"Invalid y value '{y}': must be less than {CANVAS_HEIGHT}", status_code=400)
+    except ValueError:
+        return Response(f"Invalid y value '{data['y']}': must be convertible to an integer", status_code=400)
+
+    color = data['color'].strip().lower()
+    if len(color) != 6:
+        return Response(f"Invalid color '{color}': colors must be 6 characters long", status_code=400)
+
+    bad_chars = set(color) - set("0123456789abcdef")
+    if bad_chars:
+        return Response(f"Invalid color: '{color}' must not have the characters '{repr(''.join(bad_chars))}")
+
+    try:
+        pay = float(data['pay'])
+    except ValueError:
+        return Response("Invalid payment offer: must be convertible to a number", status_code=400)
+
+    with orm.db_session():
+        user = User.get_from_authorization(authorization)
+        if user.money < pay:
+            return Response("Invalid payment offer: pay must be less than what you current have banked.", status_code=400)
+
+        new_task = Task(
+            creator=user,
+            x=x,
+            y=y,
+            color=color,
+            pay=pay,
+        )
+
+        orm.commit()
+        response_json = {"id": new_task.id}
+        if random.random() < 0.5:
+            response_json["message"] = "Thanks for making the world a better place!"
+        return JSONResponse(response_json)
+
 
 
 db = orm.Database()
@@ -177,7 +243,8 @@ app = Starlette(
     debug=True,
     routes=[
         Route('/', homepage),
-        Route('/tasks', fetch_tasks),
+        Route('/tasks', fetch_tasks, methods=['GET']),
+        Route('/tasks', create_task, methods=['POST']),
     ],
     on_startup=[start_database],
 )
