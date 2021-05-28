@@ -120,6 +120,18 @@ def create_erroring_task(coroutine):
 
     task.add_done_callback(ensure_exception)
 
+
+def make_embed(content: str, **kwargs):
+    """Quick and dirty make a discord embed dictionary"""
+    embed = {}
+    if content:
+        embed["content"] = content
+    if kwargs:
+        embed["fields"] = []
+    for key, value in kwargs.items():
+        embed['fields'].append({"name": key, "value": value, "inline": False})
+    return embed
+
 app = Starlette(
     debug=True,
     routes=[
