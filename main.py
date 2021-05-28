@@ -7,6 +7,9 @@ from starlette.routing import Route
 
 from pony import orm
 
+# NOTES ON WORKING WITH PONY AND ASYNCIO:
+#  DO NOT AWAIT WITHIN orm.db_session() or YOU WILL CAUSE DEADLOCK OR CORRUPTION
+#  Keep transaction windows short and sweet, like normal except more so.
 
 async def homepage(request):
     return Response(
