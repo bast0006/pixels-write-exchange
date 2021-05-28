@@ -152,12 +152,12 @@ def make_embed(content: str, **kwargs):
     """Quick and dirty make a discord embed dictionary"""
     embed = {}
     if content:
-        embed["content"] = content
+        embed["description"] = content
     if kwargs:
         embed["fields"] = []
     for key, value in kwargs.items():
-        embed['fields'].append({"name": key, "value": value, "inline": False})
-    return embed
+        embed['fields'].append({"name": key, "value": str(value), "inline": False})
+    return {"embeds": [embed]}
 
 app = Starlette(
     debug=True,
