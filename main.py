@@ -187,6 +187,10 @@ async def expire_task(task_id: int, when: datetime):
         else:
             return  # Successfully completed while we waited
 
+    async with aiohttp.ClientSession() as session:
+        await session.post(INFO_WEBHOOK, json=make_embed("Task reservation expired", id=task.id, x=task.x, y=task.y, pay=task.pay, color=task.color, by=reserver))
+
+
 
 async def canvas_size_loop():
     global CANVAS_WIDTH, CANVAS_HEIGHT
