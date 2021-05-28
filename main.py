@@ -94,7 +94,7 @@ async def start_database():
                 task.reservation_expires = None
                 task.reservation_task_id = None
             else:
-                asyncio.create_task(expire_task(task.id, task.reservation_expires))
+                create_erroring_task(expire_task(task.id, task.reservation_expires))
 
 
 async def expire_task(task_id: int, time: datetime):
@@ -147,7 +147,6 @@ def create_erroring_task(coroutine):
         if fut.done() and not fut.cancelled():
             return
         fut.result()
-
     task.add_done_callback(ensure_exception)
 
 
