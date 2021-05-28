@@ -66,6 +66,15 @@ class User(db.Entity):
     requested_tasks = orm.Set('Task', reverse='reservation')
     created_tasks = orm.Set('Task', reverse='creator')
 
+    @classmethod
+    def get_from_authorization(cls, authorization: str) -> 'User':
+        authorization = authorization.strip()
+        user = cls.get(identifier=authorization)
+        if not user and authorization == MAGIC_AUTHORIZATION:
+            # initial user seed
+            return cls(identifier=authorization, money=30)
+        return user or cls(identifier=authorization)
+
 
 class Task(db.Entity):
     id = orm.PrimaryKey(int, auto=True)
