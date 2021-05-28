@@ -47,6 +47,8 @@ async def homepage(request):
         "POST /tasks to create a task.\n"
         '\tFormat: {"pay": task_pay, "x": x_coord, "y": y_coord, "color": hex_color}\n'
         '\tReturns: {"id": new_task_id}\n'
+        "GET /balance to view your balance\n"
+        '\tReturns: {"id": your_id, "balance": your_balance}\n'
     )
 
 
@@ -161,6 +163,18 @@ async def reserve_task(request):
 reserve_task.NEXT_TASK_ID = 1
 reserve_task.EXPIRATION_TASKS = {}
 
+
+async def balance(request):
+    authorization = request.headers.get('Authorization', None)
+    if not authorization or not authorization.strip():
+        return Response("Authorization is required for this endpoint.", status_code=401)
+    elif len(authorization.strip()) > 30:
+        return Response("Auth tokens must be 30 characters or less in size", status_code=401)
+
+    with orm.db_session():
+        user = User.get_from_authorization(authorization)
+
+        return JSONResponse({"id": user.id, "balance": user.money})
 
 
 
@@ -307,6 +321,7 @@ app = Starlette(
         Route('/tasks', fetch_tasks, methods=['GET']),
         Route('/tasks', create_task, methods=['POST']),
         Route('/tasks/{task:int}', reserve_task, methods=['GET']),
+        Route('/balance', balance, methods=['GET']),
     ],
     on_startup=[start_database, start_size_loop],
 )
