@@ -10,6 +10,7 @@ starlette = "^0.14.2"
 rich = "^10.2.2"
 pony = "^0.7.14"
 aiohttp = "^3.7.4"
+python-dotenv = "^0.17.1"
 
 [tool.poetry.dev-dependencies]
 
