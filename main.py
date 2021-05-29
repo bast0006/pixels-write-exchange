@@ -332,7 +332,10 @@ async def submit_task(request):
         # Success!
         with orm.db_session():
             task = Task.get(id=task_id)
-            task.completed = User[user.id]
+            user = User[user.id]
+            task.completed = user
+            user.money += task.pay
+
         await log("Pixel completed!", x=task.x, y=task.y, color=task.color, user=user.id)
         return Response(f"Congratulations and thank you for your efforts! You have been paid {task.pay} cats for this pixel!")
 
