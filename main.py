@@ -323,7 +323,7 @@ async def submit_task(request):
         # fuck
         pixel_resets_by = datetime.now() + timedelta(seconds=int(cooldown_reset))
         await log("Hit the fucking /get_pixel ratelimit", remaining=cooldown_reset, requests_left=requests_left, reset=requests_reset)
-        await asyncio.sleep(int(cooldown_reset))
+        await asyncio.sleep(float(cooldown_reset))
         # Wait and try again for our user
         return await submit_task(request)
 
