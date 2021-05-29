@@ -21,6 +21,7 @@ from starlette.routing import Route
 RETURNED_TASK_COUNT = 10  # Number of tasks to return on GET /tasks
 EXPIRATION_OFFSET = timedelta(minutes=1)
 MINIMUM_WAGE = 0.1
+MAX_PASS_LENGTH = 128
 # these are dynamically updated on a timer
 CANVAS_WIDTH = 208
 CANVAS_HEIGHT = 117
@@ -40,7 +41,7 @@ HEADERS = {
 async def homepage(request):
     return Response(
         "Hello world! And welcome to Bast's Pixel Write Exchange!\n"
-        "\nAll requests should have the 'Authorization' header set to a unique identifiable token of up to 30 characters that will be used for your balance."
+        f"\nAll requests to the pixex api should have the 'Authorization' header set to a unique identifiable token of up to {MAX_PASS_LENGTH} characters that will be used to keep track of your accounting!"
         " Surrounding spaces will be stripped.\n"
         f"\nGET /tasks to get the top {RETURNED_TASK_COUNT} highest paying tasks. You may provide ?minimum_pay=<float> to filter.\n"
         '\tReturns: [{"id": task_id, "pay": task_pay},]\n'
@@ -55,7 +56,7 @@ async def homepage(request):
         "\nGET /balance to view your balance\n"
         '\tReturns: {"id": your_id, "balance": your_balance}\n'
         "\nDELETE /tasks/<task_id> to delete a task you've submitted. This will return an error if it's already been reserved.\n"
-        "\n\nGetting started:\nAdd an 'Authorization: your-secret-code-here (make it yourself! treat it like a password)' header to a requests.get() and hit /balance and /tasks."
+        f"\n\nGetting started:\nAdd an 'Authorization: your-secret-code-here (make it yourself! treat it like a password. Longest it can be is {MAX_PASS_LENGTH} characters)' header to a requests.get() and hit /balance and /tasks."
         "\nThen GET /tasks/<the-task-id-you-want> to reserve it.\n"
         "Set the pixel, then POST /tasks/<the-task-id-you-want>. We will check it and award points! There's no json content neccessary or anything!\n"
     )
@@ -76,12 +77,21 @@ async def fetch_tasks(request):
     return JSONResponse(top_ten_payers)
 
 
+def enforce_auth(function):
+    async def wrapped(request):
+        authorization = request.headers.get('Authorization', None)
+        if not authorization or not authorization.strip():
+            return Response("Authorization is required for this endpoint", status_code=401)
+        elif len(authorization.strip()) > MAX_PASS_LENGTH:
+            return Response(f"Auth tokens must be {MAX_PASS_LENGTH} characters or less in size", status_code=401)
+
+        return await function(request)
+    return wrapped
+
+
+@enforce_auth
 async def create_task(request):
     authorization = request.headers.get('Authorization', None)
-    if not authorization or not authorization.strip():
-        return Response("Authorization is required for this endpoint.", status_code=401)
-    elif len(authorization.strip()) > 30:
-        return Response("Auth tokens must be 30 characters or less in size", status_code=401)
 
     data = await request.json()
 
@@ -160,12 +170,9 @@ async def create_task(request):
     return JSONResponse(response_json)
 
 
+@enforce_auth
 async def reserve_task(request):
     authorization = request.headers.get('Authorization', None)
-    if not authorization or not authorization.strip():
-        return Response("Authorization is required for this endpoint.", status_code=401)
-    elif len(authorization.strip()) > 30:
-        return Response("Auth tokens must be 30 characters or less in size", status_code=401)
 
     task_id = request.path_params['task_id']
 
@@ -196,25 +203,18 @@ reserve_task.NEXT_TASK_ID = 1
 reserve_task.EXPIRATION_TASKS = {}
 
 
+@enforce_auth
 async def balance(request):
     authorization = request.headers.get('Authorization', None)
-    if not authorization or not authorization.strip():
-        return Response("Authorization is required for this endpoint.", status_code=401)
-    elif len(authorization.strip()) > 30:
-        return Response("Auth tokens must be 30 characters or less in size", status_code=401)
 
     with orm.db_session():
         user = User.get_from_authorization(authorization)
 
     return JSONResponse({"id": user.id, "balance": user.money})
 
-
+@enforce_auth
 async def fix_economy(request):
     authorization = request.headers.get('Authorization', None)
-    if not authorization or not authorization.strip():
-        return Response("Authorization is required for this endpoint.", status_code=401)
-    elif len(authorization.strip()) > 30:
-        return Response("Auth tokens must be 30 characters or less in size", status_code=401)
 
     if not authorization.strip() == MAGIC_AUTHORIZATION:
         return Response("As if it were so easy. Go fulfill some requests, or if there are none, yell @bast.", status_code=403)
@@ -233,12 +233,9 @@ async def fix_economy(request):
     return JSONResponse({"id": user_id, "now": new, "was": was, "added": amount})
 
 
+@enforce_auth
 async def delete_task(request):
     authorization = request.headers.get('Authorization', None)
-    if not authorization or not authorization.strip():
-        return Response("Authorization is required for this endpoint", status_code=401)
-    elif len(authorization.strip()) > 30:
-        return Response("Auth tokens must be 30 characters or less in size", status_code=401)
 
     task_id = request.path_params['task_id']
 
@@ -293,13 +290,11 @@ CURRENT_CANVAS = None
 CANVAS_UPDATED_AT = datetime.now()
 pixel_resets_by = datetime.now()
 
+
+@enforce_auth
 async def submit_task(request):
     global pixel_resets_by
     authorization = request.headers.get('Authorization', None)
-    if not authorization or not authorization.strip():
-        return Response("Authorization is required for this endpoint", status_code=401)
-    elif len(authorization.strip()) > 30:
-        return Response("Auth tokens must be 30 characters or less in size", status_code=401)
 
     task_id = request.path_params['task_id']
 
@@ -341,9 +336,6 @@ async def submit_task(request):
         return Response(f"Congratulations and thank you for your efforts! You have been paid {task.pay} cats for this pixel!")
 
     return Response(f"The pixel at {task.x}, {task.y} appears to currently be {color}, not {task.color}. /get_pixel may take up to a second to update, so feel free to try again. Otherwise someone may have sniped your pixel ;-;. Sorry. Feel free to try again later.", status_code=404)
-
-
-
 
 
 db = orm.Database()
