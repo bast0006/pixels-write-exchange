@@ -18,7 +18,7 @@ from starlette.routing import Route
 #  DO NOT AWAIT WITHIN orm.db_session() or YOU WILL CAUSE DEADLOCK OR CORRUPTION
 #  Keep transaction windows short and sweet, like normal except more so.
 
-RETURNED_TASK_COUNT = 10  # Number of tasks to return on GET /tasks
+RETURNED_TASK_COUNT = 48  # Number of tasks to return on GET /tasks
 EXPIRATION_OFFSET = timedelta(minutes=1)
 MINIMUM_WAGE = 0.1
 MAX_PASS_LENGTH = 128
@@ -211,6 +211,7 @@ async def balance(request):
         user = User.get_from_authorization(authorization)
 
     return JSONResponse({"id": user.id, "balance": user.money})
+
 
 @enforce_auth
 async def fix_economy(request):
