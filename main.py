@@ -190,7 +190,7 @@ async def reserve_task(request):
 
         task.reservation = user
         task.reservation_expires = datetime.utcnow() + EXPIRATION_OFFSET
-        expiration_task = asyncio.create_task(expire_task(reserve_task.NEXT_TASK_ID, task.reservation_expires))
+        expiration_task = asyncio.create_task(expire_task(task.id, task.reservation_expires))
         task.reservation_task_id = reserve_task.NEXT_TASK_ID
         reserve_task.EXPIRATION_TASKS[task.reservation_task_id] = expiration_task
         reserve_task.NEXT_TASK_ID += 1
@@ -394,7 +394,7 @@ async def start_database():
 
 async def expire_task(task_id: int, when: datetime):
     time_to_sleep = (when - datetime.utcnow()).total_seconds()
-    await asyncio.sleep(time_to_sleep)
+    await asyncio.sleep(max(time_to_sleep, 0))
     with orm.db_session():
         task = Task[task_id]
         if not task.completed:
@@ -407,6 +407,7 @@ async def expire_task(task_id: int, when: datetime):
                 task_task.cancel()
             task.reservation_task_id = None
         else:
+            print("Successfully completed while we waited")
             return  # Successfully completed while we waited
 
     await log("Task reservation expired", id=task.id, x=task.x, y=task.y, pay=task.pay, color=task.color, by=reserver)
