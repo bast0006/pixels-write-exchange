@@ -479,8 +479,8 @@ def make_embed(content: str, **kwargs):
 async def log(content: str, **kwargs):
     """Logging convenience method"""
     print("Logging:", content, kwargs)
-    async with aiohttp.ClientSession() as session:
-        await session.post(INFO_WEBHOOK, json=make_embed(content=content, **kwargs))
+    #async with aiohttp.ClientSession() as session:
+    #    await session.post(INFO_WEBHOOK, json=make_embed(content=content, **kwargs))
 
 async def log_startup():
     await log("Server is coming up!")
