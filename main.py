@@ -492,4 +492,4 @@ app = Starlette(
     ],
     on_startup=[start_database, start_size_loop, log_startup],
 )
-orm.set_sql_debug(True)
+#orm.set_sql_debug(True)
