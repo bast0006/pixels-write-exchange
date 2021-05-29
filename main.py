@@ -303,6 +303,9 @@ async def submit_task(request):
         user = User.get_from_authorization(authorization)
         task = Task.get(id=task_id)
 
+        if not task:
+            return Response(f"There is no task with id '{task_id}'", status_code=400)
+
         if task.reservation and task.reservation != user:
             return Response("You are not the user who reserved this task", status_code=403)
 
