@@ -93,7 +93,10 @@ def enforce_auth(function):
 async def create_task(request):
     authorization = request.headers.get('Authorization', None)
 
-    data = await request.json()
+    try:
+        data = await request.json()
+    except json.decoder.JSONDecodeError:
+        return Response("Invalid content: your json could not be decoded", status_code=400)
 
     invalid_keys = set(data) - {'id', 'pay', 'x', 'y', 'color'}
     if invalid_keys:
