@@ -393,7 +393,7 @@ async def start_database():
 
 
 async def expire_task(task_id: int, when: datetime):
-    time_to_sleep = (datetime.utcnow() - when).total_seconds()
+    time_to_sleep = (when - datetime.utcnow()).total_seconds()
     await asyncio.sleep(time_to_sleep)
     with orm.db_session():
         task = Task[task_id]
