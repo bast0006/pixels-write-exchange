@@ -60,9 +60,24 @@ async def homepage(request):
         "\nThen GET /tasks/<the-task-id-you-want> to reserve it.\n"
         "Set the pixel, then POST /tasks/<the-task-id-you-want>. We will check it and award points! There's no json content neccessary or anything!\n"
         "\n\nGET /tasks/stats to view global statistics, and provide your Authoriation header to view your specific statistics too!\n"
-        '\tReturns: {"available": available_tasks, "all_completed": total_completed_tasks, "all_reserved": total_reserved_tasks}\n'
-        '\tWith token: {"reserved": my_currently_reserved_tasks, "completed": my_completed_tasks, "average_pay": my_average_pay, "total_earnings": my_total_earnings}'
-        '\naverage_pay may be `null` if you have not completed any tasks so far.\n'
+        '\tReturns: {'
+        '\n\t\t"available": available_tasks, '
+        '\n\t\t"all_completed": total_completed_tasks,'
+        '\n\t\t"all_reserved": total_reserved_tasks,'
+        '\n\t}\n'
+        '\tWith token: {'
+        '\n\t\t"reserved": my_currently_reserved_tasks,'
+        '\n\t\t"completed": my_completed_tasks,'
+        '\n\t\t"average_pay": my_average_pay,'
+        '\n\t\t"total_earnings": my_total_earnings,'
+        '\n\t\t"submitted": my_submissions,'
+        '\n\t\t"services_provided": my_completed_submissions,'
+        '\n\t\t"paid": my_completed_payments,'
+        '\n\t\t"waiting_payments": my_pending_payments,'
+        '\n\t\t"waiting": my_pending_tasks,'
+        '\n\t\t"deleted": my_deleted_tasks,'
+        '\n\t}'
+        '\n\naverage_pay may be `null` if you have not completed any tasks so far.\n'
     )
     # Delete endpoint works for magic auth freely, and returns the money to the magic account
     # "POST /balance/<user_id>" to add money to a user with the magic api token, useful for fixing the economy. Requires the integer amount in the request body
@@ -95,12 +110,22 @@ async def task_stats(request):
 
         if authorization:
             user = User.get(identifier=authorization.strip())
-            response["average_pay"] = orm.avg(task.pay for task in Task if task.completed and task.reservation == user)
-            response["total_earnings"] = orm.sum(task.pay for task in Task if task.completed and task.reservation == user)
-            response["completed"] = orm.count(task for task in Task if task.completed == user and not task.deleted)
+            response.update({
+                "average_pay": orm.avg(task.pay for task in Task if task.completed and task.reservation == user),
+                "total_earnings": orm.sum(task.pay for task in Task if task.completed and task.reservation == user),
+                "completed": orm.count(task for task in Task if task.completed == user and not task.deleted),
+                "reserved": orm.count(task for task in Task if task.reservation == user and not task.completed and not task.deleted),
+                "submitted": orm.count(task for task in Task if task.creator == user),
+                "services_provided": orm.count(task for task in Task if task.creator == user and task.completed and not task.deleted),
+                "paid": orm.sum(task.pay for task in Task if task.creator == user and not task.completed),
+                "waiting_payments": orm.sum(task.pay for task in Task if task.creator == user and not task.reservation and not task.deleted and not task.completed),
+                "waiting": orm.count(task for task in Task if task.creator == user and not task.reservation and not task.deleted and not task.completed),
+                "deleted": orm.count(task for task in Task if task.creator == user and task.deleted),
+            })
             if response["completed"] >= 1000:
                 response["message"] = "Glad to have you here! The 1k club is proud of it's members!"
-            response["reserved"] = orm.count(task for task in Task if task.reservation == user and not task.completed and not task.deleted)
+            if response["submitted"] > 10:
+                response["submitters_club"] = "Welcome! Enjoy your stay!"
 
     return JSONResponse(response)
 
