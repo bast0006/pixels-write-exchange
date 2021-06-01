@@ -59,6 +59,10 @@ async def homepage(request):
         f"\n\nGetting started:\nAdd an 'Authorization: your-secret-code-here (make it yourself! treat it like a password. Longest it can be is {MAX_PASS_LENGTH} characters)' header to a requests.get() and hit /balance and /tasks."
         "\nThen GET /tasks/<the-task-id-you-want> to reserve it.\n"
         "Set the pixel, then POST /tasks/<the-task-id-you-want>. We will check it and award points! There's no json content neccessary or anything!\n"
+        "\n\nGET /tasks/stats to view global statistics, and provide your Authoriation header to view your specific statistics too!\n"
+        '\tReturns: {"available": available_tasks, "all_completed": total_completed_tasks, "all_reserved": total_reserved_tasks}\n'
+        '\tWith token: {"reserved": my_currently_reserved_tasks, "completed": my_completed_tasks, "average_pay": my_average_pay, "total_earnings": my_total_earnings}'
+        '\naverage_pay may be `null` if you have not completed any tasks so far.\n'
     )
     # Delete endpoint works for magic auth freely, and returns the money to the magic account
     # "POST /balance/<user_id>" to add money to a user with the magic api token, useful for fixing the economy. Requires the integer amount in the request body
@@ -75,6 +79,30 @@ async def fetch_tasks(request):
         top_ten_payers = orm.select(task for task in Task if not task.completed and not task.deleted and not task.reservation and task.pay >= minimum_pay).order_by(orm.desc(Task.pay))[:RETURNED_TASK_COUNT]
         top_ten_payers = [{"id": task.id, "pay": task.pay} for task in top_ten_payers]
     return JSONResponse(top_ten_payers)
+
+
+async def task_stats(request):
+    authorization = request.headers.get('Authorization', None)
+    if authorization and len(authorization.strip()) > MAX_PASS_LENGTH:
+        return Response(f"Auth tokens must be {MAX_PASS_LENGTH} characters or less in size", status_code=401)
+
+    with orm.db_session():
+        response = {
+            "available": orm.count(task for task in Task if not task.completed and not task.deleted and not task.reservation),
+            "all_completed": orm.count(task for task in Task if task.completed and not task.deleted),
+            "all_reserved": orm.count(task for task in Task if task.reservation and not task.completed and not task.deleted),
+        }
+
+        if authorization:
+            user = User.get(identifier=authorization.strip())
+            response["average_pay"] = orm.avg(task.pay for task in Task if task.completed and task.reservation == user)
+            response["total_earnings"] = orm.sum(task.pay for task in Task if task.completed and task.reservation == user)
+            response["completed"] = orm.count(task for task in Task if task.completed == user and not task.deleted)
+            if response["completed"] >= 1000:
+                response["message"] = "Glad to have you here! The 1k club is proud of it's members!"
+            response["reserved"] = orm.count(task for task in Task if task.reservation == user and not task.completed and not task.deleted)
+
+    return JSONResponse(response)
 
 
 def enforce_auth(function):
@@ -496,6 +524,7 @@ app = Starlette(
         Route('/tasks', create_task, methods=['POST']),
         Route('/tasks/{task_id:int}', reserve_task, methods=['GET']),
         Route('/tasks/{task_id:int}', submit_task, methods=['POST']),
+        Route('/tasks/stats', task_stats, methods=['GET']),
         Route('/balance', balance, methods=['GET']),
         Route('/balance/{user_id:int}', fix_economy, methods=['POST']),
         Route('/tasks/{task_id:int}', delete_task, methods=['DELETE']),
