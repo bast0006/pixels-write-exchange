@@ -23,8 +23,8 @@ EXPIRATION_OFFSET = timedelta(minutes=1)
 MINIMUM_WAGE = 0.1
 MAX_PASS_LENGTH = 128
 # these are dynamically updated on a timer
-CANVAS_WIDTH = 208
-CANVAS_HEIGHT = 117
+CANVAS_WIDTH = 242
+CANVAS_HEIGHT = 153
 CANVAS_REFRESH_RATE = 10  # seconds
 API_BASE = "https://pixels.pythondiscord.com"
 CONFIG = dotenv_values(".env")
@@ -231,6 +231,8 @@ async def reserve_task(request):
     authorization = request.headers.get('Authorization', None)
 
     task_id = request.path_params['task_id']
+
+    return JSONResponse("Reservations can no longer be made as pixels has temporarily concluded! Check back later for our reopening.", status_code=404)
 
     with orm.db_session():
         user = User.get_from_authorization(authorization)
@@ -505,6 +507,7 @@ async def canvas_size_loop():
 
 
 async def start_size_loop():
+    return
     create_erroring_task(canvas_size_loop())
 
 
