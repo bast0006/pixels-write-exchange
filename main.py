@@ -41,6 +41,8 @@ HEADERS = {
 async def homepage(request):
     return Response(
         "Hello world! And welcome to Bast's Pixel Write Exchange!\n"
+        "\nThis service is currently DISABLED because the pixels event has ended!\n"
+        "We will eventually be moving this endpoint to pixels.subsystems.bast-development.com\n"
         f"\nAll requests to the pixex api should have the 'Authorization' header set to a unique identifiable token of up to {MAX_PASS_LENGTH} characters that will be used to keep track of your accounting!"
         " Surrounding spaces will be stripped.\n"
         f"\nGET /tasks to get the top {RETURNED_TASK_COUNT} highest paying tasks. You may provide ?minimum_pay=<float> to filter.\n"
